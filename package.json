@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "netlify-login": "npx netlify login",
+    "netlify-deploy": "npx netlify deploy"
   },
   "keywords": [],
   "author": "Omkar Raykar",
@@ -19,9 +21,11 @@
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.2",
-    "mongoose-aggregate-paginate-v2": "^1.1.2"
+    "mongoose-aggregate-paginate-v2": "^1.1.2",
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
+    "netlify-cli": "^17.38.0",
     "nodemon": "^3.1.7",
     "prettier": "^3.3.3"
   }
