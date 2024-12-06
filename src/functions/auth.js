@@ -1,14 +1,18 @@
-import express from "express";
-import serverless from "serverless-http";
-import authRouter from "../routes/authRouter.js";
+// src/functions/auth-login.js
+import { loginUser } from "../controllers/authController.js";
 
-const app = express();
-
-// Middleware
-app.use(express.json());
-
-// Use the userRouter for all routes starting with "/users"
-app.use("/auths", authRouter);
-
-// Export the handler for serverless deployment
-export const handler = serverless(app);
+export async function handler(event, context) {
+  try {
+    const body = JSON.parse(event.body);
+    const response = await loginUser(body);
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response),
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message }),
+    };
+  }
+}

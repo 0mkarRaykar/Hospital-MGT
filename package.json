@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
     "start": "node src/index.js",
-    "netlify-login": "npx netlify login",
+    "netlify": "netlify dev",
     "netlify-deploy": "npx netlify deploy"
   },
   "keywords": [],
