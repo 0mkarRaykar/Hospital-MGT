@@ -3,7 +3,7 @@ import serverlessHttp from "serverless-http";
 
 const app = express();
 
-app.get("/functions/authFunction", (req, res) => {
+app.get("/.netlify/functions/authFunction", (req, res) => {
   res.json({
     message: "hello world",
   });
@@ -11,6 +11,7 @@ app.get("/functions/authFunction", (req, res) => {
 
 const serverlessHandler = serverlessHttp(app);
 
+// Export the handler for Netlify to use
 export const handler = async (event, context) => {
   const result = await serverlessHandler(event, context);
   return result;
