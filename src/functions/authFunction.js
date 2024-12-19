@@ -12,8 +12,6 @@ app.get("/.netlify/functions/authFunction", (req, res) => {
 const serverlessHandler = serverlessHttp(app);
 
 export const handler = async (event, context) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ message: "Authentication function is working!" }),
-  };
+  const result = await serverlessHandler(event, context);
+  return result;
 };
