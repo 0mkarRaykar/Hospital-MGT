@@ -27,8 +27,8 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["SuperAdmin", "DistrictAdmin", "FacilityAdmin", "DepartmentUser"],
-      default: "DepartmentUser",
+      enum: ["Admin", "Hospital", "Doctor", "Patient"],
+      default: "Patient",
     },
     isActive: {
       type: Boolean,
@@ -37,10 +37,6 @@ const userSchema = new Schema(
     isDeleted: {
       type: Boolean,
       default: false,
-    },
-    assignedFacility: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Facility",
     },
     createdAt: {
       type: Date,

@@ -19,10 +19,12 @@ app.use(cookieParser());
 import authRouter from "./routes/authRoute.js";
 import userRouter from "./routes/userRoute.js";
 import facilityRouter from "./routes/facilityRoute.js";
+import patientRouter from "./routes/patientRoute.js";
 
 // routes declaration
 app.use("/api/v1/auths", authRouter);
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/facility", facilityRouter);
+app.use("/api/v1/facilities", facilityRouter);
+app.use("/api/v1/patients", patientRouter);
 
 export { app };

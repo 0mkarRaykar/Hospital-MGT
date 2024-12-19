@@ -8,7 +8,7 @@ import { Facility } from "../models/facilityModel.js";
 import { User } from "../models/userModel.js";
 
 // @desc     create new facility (role based)
-// route     POST api/v1/facility/createFacility
+// route     POST api/v1/facilities/createFacility
 // @accesss  Private
 const createFacility = asyncHandler(async (req, res) => {
   const { name, address, type } = req.body;
@@ -44,7 +44,7 @@ const createFacility = asyncHandler(async (req, res) => {
 });
 
 // @desc     fetch all facility from db (role based fetching)
-// route     GET api/v1/facility/getAllFacility
+// route     GET api/v1/facilities/getAllFacility
 // @accesss  Private
 const getAllFacility = asyncHandler(async (req, res) => {
   try {
@@ -76,7 +76,7 @@ const getAllFacility = asyncHandler(async (req, res) => {
 });
 
 // @desc     fetch a facility by Id from db
-// route     GET api/v1/facility/{id}
+// route     GET api/v1/facilities/{id}
 // @accesss  Private
 const getFacilityById = asyncHandler(async (req, res) => {
   const { facilityId } = req.params;
@@ -101,7 +101,7 @@ const getFacilityById = asyncHandler(async (req, res) => {
 });
 
 // @desc     update facility by Id from db (role based)
-// route     PATCH api/v1/facility/{id}
+// route     PATCH api/v1/facilities/{id}
 // @accesss  Private
 const updateFacility = asyncHandler(async (req, res) => {
   const { facilityId } = req.params;
@@ -140,7 +140,7 @@ const updateFacility = asyncHandler(async (req, res) => {
 });
 
 // @desc     delete facility by Id from db (soft-delete & role based)
-// route     POST api/v1/facility/{id}
+// route     POST api/v1/facilities/{id}
 // @accesss  Private
 const deleteFacility = asyncHandler(async (req, res) => {
   const { facilityId } = req.params;

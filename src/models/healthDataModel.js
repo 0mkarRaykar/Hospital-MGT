@@ -1,12 +1,18 @@
+import mongoose, { Schema } from "mongoose";
+
 const HealthDataSchema = new mongoose.Schema({
+  patient: {
+    type: Schema.Types.ObjectId,
+    ref: "Patient",
+    required: true,
+  },
+  doctor: {
+    type: Schema.Types.ObjectId,
+    ref: "Doctor",
+  },
   facility: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Facility",
-    required: true,
-  },
-  department: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Department",
     required: true,
   },
   reportedBy: {
@@ -29,4 +35,4 @@ const HealthDataSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("HealthData", HealthDataSchema);
+export const HealthData = mongoose.model("HealthData", HealthDataSchema);

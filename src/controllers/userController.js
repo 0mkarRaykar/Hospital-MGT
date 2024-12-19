@@ -13,7 +13,7 @@ import { User } from "../models/userModel.js";
 const getAllUsers = asyncHandler(async (req, res) => {
   try {
     // Fetch the role of the requesting user
-    const requestingUser = await User.findById(req.user._id); 
+    const requestingUser = await User.findById(req.user._id);
     if (!requestingUser) {
       throw new ApiError(404, "Requesting user not found");
     }
@@ -22,16 +22,19 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
     // Define role-based filters
     switch (requestingUser.role) {
-      case "SuperAdmin":
+      case "Admin":
         roleFilter = {
-          role: { $in: ["DistrictAdmin", "FacilityAdmin", "DepartmentUser"] },
+          role: { $in: ["Hospital", "Doctor", "Patient"] },
         };
         break;
-      case "DistrictAdmin":
-        roleFilter = { role: { $in: ["FacilityAdmin", "DepartmentUser"] } };
+      case "Hospital":
+        roleFilter = { role: { $in: ["Doctor", "Patient"] } };
         break;
-      case "FacilityAdmin":
-        roleFilter = { role: "DepartmentUser" };
+      case "Doctor":
+        roleFilter = { role: "Patient" };
+        break;
+      case "Patient":
+        roleFilter = { role: "Patient" };
         break;
       default:
         throw new ApiError(
