@@ -151,3 +151,5 @@ const deleteBed = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, "", "Bed deleted successfully"));
 
 })
+
+export {createBed, getAllBeds, getBedById, updateBed, deleteBed}
