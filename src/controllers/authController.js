@@ -82,39 +82,65 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const registerUser = asyncHandler(async (req, res) => {
   const { email, fullName, password, mobileNumber, role } = req.body;
 
+  // Check if all fields are provided
   if (
     [email, fullName, password, mobileNumber, role].some(
       (field) => field?.trim() === ""
     )
   ) {
-    throw new ApiError(400, "All field are required");
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
   }
 
-  const existedUser = await User.findOne({
-    $or: [{ email }],
-  });
+  // Check if the user already exists
+  const existedUser = await User.findOne({ $or: [{ email }] });
   if (existedUser) {
-    throw new ApiError(409, "User with email already exists");
+    return res.status(409).json({
+      success: false,
+      message: "User with email already exists",
+    });
   }
 
-  const user = await User.create({
-    fullName,
-    email,
-    password,
-    mobileNumber,
-    role,
-  });
+  try {
+    // Attempt to create the new user
+    const user = await User.create({
+      fullName,
+      email,
+      password,
+      mobileNumber,
+      role,
+    });
 
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering the user");
+    const createdUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
+    if (!createdUser) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while registering the user",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: createdUser,
+    });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    // Handle other unexpected errors
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong during registration",
+    });
   }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered Successfully"));
 });
 
 // @desc     Login a new user
@@ -124,7 +150,10 @@ const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   if (!email) {
-    throw new ApiError(400, "email is required");
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
   }
 
   // Find the user with the given email, ensuring they are active and not deleted
@@ -135,13 +164,19 @@ const loginUser = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    throw new ApiError(400, "User not found");
+    return res.status(400).json({
+      success: false,
+      message: "User not found",
+    });
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid credentials");
+    return res.status(401).json({
+      success: false,
+      message: "Invalid credentials",
+    });
   }
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id
@@ -153,7 +188,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
   };
 
   return res
@@ -206,7 +242,10 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
   if (!isPasswordCorrect) {
-    throw new ApiError(400, "Invalid old password");
+    return res.status(400).json({
+      success: false,
+      message:  "Invalid old password",
+    });
   }
 
   user.password = newPassword;
