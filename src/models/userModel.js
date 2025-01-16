@@ -33,10 +33,12 @@ const userSchema = new Schema(
     isActive: {
       type: Boolean,
       default: true,
+      set: (value) => value,
     },
     isDeleted: {
       type: Boolean,
       default: false,
+      set: (value) => value,
     },
     createdAt: {
       type: Date,
