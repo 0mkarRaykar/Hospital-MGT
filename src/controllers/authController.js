@@ -80,11 +80,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 // route     POST api/v1/auths/register
 // @accesss  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { email, fullName, password, mobileNumber, role } = req.body;
+  const { email, fullName, password, mobileNumber, role, isActive, isDeleted } =
+    req.body;
 
   // Check if all fields are provided
   if (
-    [email, fullName, password, mobileNumber, role].some(
+    [email, fullName, password, mobileNumber, role, isActive, isDeleted].some(
       (field) => field?.trim() === ""
     )
   ) {
@@ -111,6 +112,8 @@ const registerUser = asyncHandler(async (req, res) => {
       password,
       mobileNumber,
       role,
+      isActive,
+      isDeleted,
     });
 
     const createdUser = await User.findById(user._id).select(
@@ -244,7 +247,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   if (!isPasswordCorrect) {
     return res.status(400).json({
       success: false,
-      message:  "Invalid old password",
+      message: "Invalid old password",
     });
   }
 
