@@ -12,51 +12,41 @@ import { User } from "../models/userModel.js";
 
 const getAllUsers = asyncHandler(async (req, res) => {
   try {
-    // Fetch the role of the requesting user
     const requestingUser = await User.findById(req.user._id);
+
     if (!requestingUser) {
-      throw new ApiError(404, "Requesting user not found");
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
     }
 
-    let roleFilter = {};
-
-    // Define role-based filters
-    switch (requestingUser.role) {
-      case "Admin":
-        roleFilter = {
-          role: { $in: ["Hospital", "Doctor", "Patient"] },
-        };
-        break;
-      case "Hospital":
-        roleFilter = { role: { $in: ["Doctor", "Patient"] } };
-        break;
-      case "Doctor":
-        roleFilter = { role: "Patient" };
-        break;
-      case "Patient":
-        roleFilter = { role: "Patient" };
-        break;
-      default:
-        throw new ApiError(
-          403,
-          "You are not authorized to access this resource"
-        );
+    // Check if the user's role is allowed (0 or 1)
+    const { role } = requestingUser;
+    if (![0, 1].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to access this resource",
+      });
     }
 
-    // Fetch users based on the role filter, active status, and non-deleted status
+    // Fetch users only if authorized
     const users = await User.find({
-      ...roleFilter,
       isActive: true,
       isDeleted: false,
     });
 
-    // Return the fetched users
-    res
-      .status(200)
-      .json(new ApiResponse(200, "Users fetched successfully", users));
+    return res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: users,
+    });
   } catch (error) {
-    console.error("Error fetching users based on role:", error);
-    throw new ApiError(500, "An error occurred while fetching users");
+    console.error("Error fetching users:", error.message, error.stack);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching users",
+    });
   }
 });
 
