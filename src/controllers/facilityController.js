@@ -14,24 +14,31 @@ const createFacility = asyncHandler(async (req, res) => {
   const { name, address, type } = req.body;
 
   // validate user role
-  const allowedRoles = ["SuperAdmin", "DistrictAdmin", "FacilityAdmin"];
+  const allowedRoles = [0, 1];
   if (!allowedRoles.includes(req.user.role)) {
-    throw new ApiError(403, "You are not authorized to create a facility");
+    return res.status(403).json({
+      success: false,
+      message: "Access denied: Unauthorized to access this resource",
+    });
   }
 
   // validate required fields
   if (
     !name ||
-    !address?.state ||
-    !address?.city ||
-    !address?.pincode ||
-    !type
+    !address ||
+    !address.state ||
+    !address.city ||
+    !address.pincode ||
+    typeof type === "undefined"
   ) {
-    throw new ApiError(400, "All required fields must be provided");
+    return res.status(403).json({
+      success: false,
+      message: "All fields are required",
+    });
   }
 
   // Create the facility
-  const facility = await Facility.create({
+  const facilities = await Facility.create({
     name,
     address,
     type,
@@ -40,7 +47,7 @@ const createFacility = asyncHandler(async (req, res) => {
   // Respond with the created facility
   return res
     .status(201)
-    .json(new ApiResponse(201, facility, "Facility created successfully"));
+    .json(new ApiResponse(201, facilities, "Facility created successfully"));
 });
 
 // @desc     fetch all facility from db (role based fetching)
@@ -51,27 +58,37 @@ const getAllFacility = asyncHandler(async (req, res) => {
     // fetch the role of the requesting user
     const requestingUser = await User.findById(req.user._id);
     if (!requestingUser) {
-      throw new ApiError(404, "Requesting user not found");
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
     }
 
-    let roleFilter = {};
-
-    if (requestingUser.role === "DepartmentUser") {
-      throw new ApiError(401, "Unauthorized to access the resource");
+    // Check if the user's role is allowed (0 or 1)
+    const { role } = requestingUser;
+    if (![0, 1].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to access this resource",
+      });
     }
 
     // Fetch users based on the role filter, active status, and non-deleted status
-    const users = await Facility.find({
-      ...roleFilter,
+    const facilities = await Facility.find({
       isActive: true,
       isDeleted: false,
     });
     // Return the fetched users
-    res
-      .status(200)
-      .json(new ApiResponse(200, "Facilities fetched successfully", users));
+    return res.status(200).json({
+      success: true,
+      message: "Facilities fetched successfully",
+      data: facilities,
+    });
   } catch (error) {
-    throw new ApiError(500, "An error occurred while fetching facilities");
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching facilities",
+    });
   }
 });
 
@@ -83,21 +100,27 @@ const getFacilityById = asyncHandler(async (req, res) => {
 
   // validate facilityId parameter
   if (!isValidObjectId(facilityId)) {
-    throw new ApiError(400, "Invalid facility ID");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user ID",
+    });
   }
 
   // find the facility by ID
-  const facility = await Facility.findById(facilityId);
+  const facilities = await Facility.findById(facilityId);
 
   //check if the facility was found
-  if (!facility) {
-    throw new ApiError(404, "facility not found");
+  if (!facilities) {
+    return res.status(404).json({
+      success: false,
+      message: "Requesting facility not found",
+    });
   }
 
   // return the user details
   return res
     .status(200)
-    .json(new ApiResponse(200, facility, "Facility fetched successfully"));
+    .json(new ApiResponse(200, facilities, "Facility fetched successfully"));
 });
 
 // @desc     update facility by Id from db (role based)
@@ -109,34 +132,88 @@ const updateFacility = asyncHandler(async (req, res) => {
 
   // validate facility
   if (!isValidObjectId(facilityId)) {
-    throw new ApiError(400, "Invalid facility ID");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid facility ID",
+    });
   }
-  // Prepare the update object
-  const updateData = {};
-  if (name) updateData.name = name;
-  if (address) updateData.address = address;
-  if (type) updateData.type = type;
 
-  // update user
-  const updatedFacility = await Facility.findByIdAndUpdate(
-    facilityId,
-    updateData,
-    {
-      new: true,
+  try {
+    // Get the requesting user's details
+    const requestingUser = await User.findById(req.user._id);
+
+    if (!requestingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
     }
-  );
 
-  // check if facility was found and update
-  if (!updatedFacility) {
-    throw new ApiError(404, "Facility not found");
-  }
+    // Check if the requesting user has role 0 (Admin) or 1
+    if (![0, 1].includes(requestingUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to update this user",
+      });
+    }
 
-  // return the updated facility details
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, updatedFacility, "Facility updated successfully")
+    // Retrieve the existing facility
+    const existingFacility = await Facility.findById(facilityId);
+    if (!existingFacility) {
+      return res.status(404).json({
+        success: false,
+        message: "Facility not found",
+      });
+    }
+
+    // Prepare the update object
+    const updateData = {};
+
+    if (name) updateData.name = name;
+
+    // Update the address if all fields are present
+    if (address) {
+      updateData.address = {
+        state: address.state || existingFacility.address.state,
+        city: address.city || existingFacility.address.city,
+        pincode: address.pincode || existingFacility.address.pincode,
+      };
+    }
+
+    // Update the type if provided
+    if (type !== undefined) updateData.type = type;
+
+    console.log("Update Data:", updateData);
+
+    // update user
+    const updatedFacility = await Facility.findByIdAndUpdate(
+      facilityId,
+      updateData,
+      {
+        new: true,
+      }
     );
+
+    // check if facility was found and update
+    if (!updatedFacility) {
+      return res.status(404).json({
+        success: false,
+        message: "Facility not found",
+      });
+    }
+
+    // return the updated facility details
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, updatedFacility, "Facility updated successfully")
+      );
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the facility",
+    });
+  }
 });
 
 // @desc     delete facility by Id from db (soft-delete & role based)
@@ -147,24 +224,53 @@ const deleteFacility = asyncHandler(async (req, res) => {
 
   // validate the facilityId
   if (!isValidObjectId(facilityId)) {
-    throw new ApiError(400, "Invalid facility ID");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user ID",
+    });
   }
 
-  // Delete the facility (soft delete)
-  const facility = await Facility.findByIdAndUpdate(
-    facilityId,
-    { isDeleted: true },
-    { new: true }
-  );
+  try {
+    // Get the requesting user's details
+    const requestingUser = await User.findById(req.user._id);
 
-  if (!facility) {
-    throw new ApiError(404, "Facility not found");
+    if (!requestingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
+    }
+
+    // Check if the requesting user has role 0 (Admin) or 1
+    if (![0, 1].includes(requestingUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to delete this user",
+      });
+    }
+    // Delete the facility (soft delete)
+    const facilities = await Facility.findByIdAndUpdate(
+      facilityId,
+      { isDeleted: true },
+      { new: true }
+    );
+    if (!facilities) {
+      return res.status(404).json({
+        success: false,
+        message: "Facility not found",
+      });
+    }
+
+    //return success message
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "", "Facility deleted successfully"));
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the facility",
+    });
   }
-
-  //return success message
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "", "Facility deleted successfully"));
 });
 
 export {

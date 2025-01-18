@@ -22,8 +22,8 @@ const FacilitySchema = new Schema(
       },
     },
     type: {
-      type: String,
-      enum: ["Hospital", "Clinic", "Health Center"],
+      type: Number,
+      enum: [0, 1, 2], // 0 - Hospital, 1 - Clinic, 2 - Health Center
       required: true,
     },
     isActive: {
