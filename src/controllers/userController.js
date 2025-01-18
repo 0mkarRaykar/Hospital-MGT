@@ -109,7 +109,6 @@ const getUserById = asyncHandler(async (req, res) => {
       message: "User fetched successfully",
     });
   } catch (error) {
-    console.error("Error fetching user:", error.message, error.stack);
     return res.status(500).json({
       success: false,
       message: "An error occurred while fetching the user",
@@ -180,7 +179,6 @@ const updateUser = asyncHandler(async (req, res) => {
       message: "User updated successfully",
     });
   } catch (error) {
-    console.error("Error updating user:", error.message, error.stack);
     return res.status(500).json({
       success: false,
       message: "An error occurred while updating the user",
@@ -242,7 +240,6 @@ const deleteUser = asyncHandler(async (req, res) => {
       message: "User deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting user:", error.message, error.stack);
     return res.status(500).json({
       success: false,
       message: "An error occurred while deleting the user",
