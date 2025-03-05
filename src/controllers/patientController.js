@@ -28,9 +28,12 @@ const createPatient = asyncHandler(async (req, res) => {
   } = req.body;
 
   // validate user role
-  const allowedRoles = ["Hospital"];
+  const allowedRoles = [1];
   if (!allowedRoles.includes(req.user.role)) {
-    throw new ApiError(403, "You are not authorized to create a patient");
+    return res.status(403).json({
+      success: false,
+      message: "Access denied: Unauthorized to access this resource",
+    });
   }
 
   // validate required fields
@@ -43,7 +46,17 @@ const createPatient = asyncHandler(async (req, res) => {
     !currentCondition ||
     !gender
   ) {
-    throw new ApiError(400, "All required fields must be provided");
+    return res.status(403).json({
+      success: false,
+      message: "All fields are required",
+    });
+  }
+
+  if (age <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Age must be a positive number.",
+    });
   }
 
   // create the patient
@@ -70,27 +83,34 @@ const createPatient = asyncHandler(async (req, res) => {
 // route     GET api/v1/patients/getAllPatient
 // @accesss  Private
 const getAllPatient = asyncHandler(async (req, res) => {
-  // fetch the role of the requesting user
-  const requestingUser = await User.findById(req.user._id);
-  if (!requestingUser) {
-    throw new ApiError(404, "Requesting user not found");
+  try {
+    // fetch the role of the requesting user
+    const requestingUser = await User.findById(req.user._id);
+    if (!requestingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
+    }
+    const { role } = requestingUser;
+    if (![0, 1].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to access this resource",
+      });
+    }
+    // Fetch users based on the role filter, active status, and non-deleted status
+    const patient = await Patient.find({});
+    // Return the fetched users
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Patients fetched successfully", patient));
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching patients",
+    });
   }
-
-  let roleFilter = {};
-
-  if (requestingUser.role === "Patient") {
-    throw new ApiError(401, "Unauthorized to access the resource");
-  }
-  // Fetch users based on the role filter, active status, and non-deleted status
-  const users = await Patient.find({
-    ...roleFilter,
-    isActive: true,
-    isDeleted: false,
-  });
-  // Return the fetched users
-  res
-    .status(200)
-    .json(new ApiResponse(200, "Patients fetched successfully", users));
 });
 
 // @desc     fetch a patient by Id from db
@@ -101,16 +121,25 @@ const getPatientById = asyncHandler(async (req, res) => {
 
   // validate patientId parameter
   if (!isValidObjectId(patientId)) {
-    throw new ApiError(400, "Invalid patient ID");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid patient ID",
+    });
   }
 
-  const patient = await Patient.findById(req.params.id)
-    .populate("user")
+  const patient = await Patient.findById(patientId)
+    .populate({
+      path: "userId",
+      select: "-password -refreshToken -isActive -isDeleted -role",
+    })
     .populate("assignedDoctor");
 
   //check if the patient was found
   if (!patient) {
-    throw new ApiError(404, "patient not found");
+    return res.status(404).json({
+      success: false,
+      message: "Requesting patient not found",
+    });
   }
 
   // return the user details
@@ -138,39 +167,81 @@ const updatePatient = asyncHandler(async (req, res) => {
 
   // validate patient
   if (!isValidObjectId(patientId)) {
-    throw new ApiError(400, "Invalid patient ID");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid patient ID",
+    });
   }
 
-  // Prepare the update object
-  const updateData = {};
-  if (age) updateData.age = age;
-  if (bloodGroup) updateData.bloodGroup = bloodGroup;
-  if (medicalHistory) updateData.medicalHistory = medicalHistory;
-  if (allergies) updateData.allergies = allergies;
-  if (hospitalId) updateData.hospitalId = hospitalId;
-  if (emergencyContact) updateData.emergencyContact = emergencyContact;
-  if (currentCondition) updateData.currentCondition = currentCondition;
-  if (gender) updateData.gender = gender;
-  if (assignedDoctor) updateData.assignedDoctor = assignedDoctor;
+  try {
+    // Get the requesting user's details
+    const requestingUser = await User.findById(req.user._id);
 
-  // update user
-  const updatedPatient = await Patient.findByIdAndUpdate(
-    patientId,
-    updateData,
-    {
-      new: true,
+    if (!requestingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
     }
-  );
 
-  // check if patient was found and update
-  if (!updatePatient) {
-    throw new ApiError(404, "Patient not found");
+    // Check if the requesting user has role 0 (Admin) or 1
+    if (![0, 1].includes(requestingUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to update this user",
+      });
+    }
+
+    // Retrieve the existing patient
+    const existingPatient = await Patient.findById(patientId);
+    if (!existingPatient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+    // Prepare the update object
+    const updateData = {};
+    if (age) updateData.age = age;
+    if (bloodGroup) updateData.bloodGroup = bloodGroup;
+    if (medicalHistory) updateData.medicalHistory = medicalHistory;
+    if (allergies) updateData.allergies = allergies;
+    if (hospitalId) updateData.hospitalId = hospitalId;
+    if (emergencyContact) updateData.emergencyContact = emergencyContact;
+    if (currentCondition) updateData.currentCondition = currentCondition;
+    if (gender) updateData.gender = gender;
+    if (assignedDoctor) updateData.assignedDoctor = assignedDoctor;
+
+    // update user
+    const updatedPatient = await Patient.findByIdAndUpdate(
+      patientId,
+      updateData,
+      {
+        new: true,
+      }
+    );
+
+    // check if patient was found and update
+    if (!updatePatient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+    // return the updated patient details
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, updatedPatient, "Patient updated successfully")
+      );
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the patient",
+    });
   }
-
-  // return the updated patient details
-  return res
-    .status(200)
-    .json(new ApiResponse(200, updatedPatient, "Patient updated successfully"));
 });
 
 // @desc     delete patient by Id from db (soft-delete & role based)
@@ -180,23 +251,51 @@ const deletePatient = asyncHandler(async (req, res) => {
   const { patientId } = req.params;
   // validate the patientId
   if (!isValidObjectId(patientId)) {
-    throw new ApiError(400, "Invalid patient ID");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user ID",
+    });
   }
 
-  // Delete the patient (soft delete)
-  const patient = await Patient.findByIdAndUpdate(
-    patientId,
-    { isDeleted: true },
-    { new: true }
-  );
-  if (!patient) {
-    throw new ApiError(404, "patient not found");
-  }
+  try {
+    const requestingUser = await User.findById(req.user._id);
 
-  //return success message
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "", "patient deleted successfully"));
+    if (!requestingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
+    }
+
+    if (![0, 1].includes(requestingUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Unauthorized to delete this user",
+      });
+    }
+
+    // Delete the patient (soft delete)
+    const patient = await Patient.findByIdAndUpdate(
+      patientId,
+      { isDeleted: true },
+      { new: true }
+    );
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+    //return success message
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "", "patient deleted successfully"));
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the patient",
+    });
+  }
 });
 
 export {

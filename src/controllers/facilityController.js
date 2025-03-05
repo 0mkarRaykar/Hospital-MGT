@@ -183,8 +183,6 @@ const updateFacility = asyncHandler(async (req, res) => {
     // Update the type if provided
     if (type !== undefined) updateData.type = type;
 
-    console.log("Update Data:", updateData);
-
     // update user
     const updatedFacility = await Facility.findByIdAndUpdate(
       facilityId,

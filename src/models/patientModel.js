@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const PatientSchema = new Schema(
   {
-    name: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -10,6 +10,7 @@ const PatientSchema = new Schema(
     age: {
       type: Number,
       required: true,
+      min: 0,
     },
     bloodGroup: {
       type: String,
@@ -36,7 +37,7 @@ const PatientSchema = new Schema(
     },
     gender: {
       type: String,
-      enum: ["Male", "Female"],
+      enum: ["M", "F", "O"],
       required: true,
     },
     assignedDoctor: {
