@@ -46,7 +46,18 @@ const HospitalSchema = new Schema(
         ref: "Bed",
       },
     ],
+    isActive: {
+      type: Boolean,
+      default: true,
+      set: (value) => value,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      set: (value) => value,
+    },
   },
+
   { timestamps: true }
 );
 

@@ -60,33 +60,32 @@ const createHospital = asyncHandler(async (req, res) => {
 
 const getAllHospital = asyncHandler(async (req, res) => {
   // fetch the role of the requesting user
-  const requestingUser = await User.findById(req.user._id);
-  if (!requestingUser) {
-    return res.status(404).json({
+  try {
+    const requestingUser = await User.findById(req.user._id);
+    if (!requestingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Requesting user not found",
+      });
+    }
+
+    // Fetch users based on the role filter, active status, and non-deleted status
+    const hospitals = await Hospital.find({
+      isActive: true,
+      isDeleted: false,
+    });
+    // Return the fetched hospitals
+    return res.status(200).json({
+      success: true,
+      message: "Hospitals fetched successfully",
+      data: hospitals,
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Requesting user not found",
+      message: "An error occurred while fetching hospitals",
     });
   }
-
-  const { role } = requestingUser;
-
-  if (![0, 1, 2, 3].includes(role)) {
-    return res.status(403).json({
-      success: false,
-      message: "Access denied: Unauthorized to access this resource",
-    });
-  }
-  // Fetch users based on the role filter, active status, and non-deleted status
-  const hospitals = await Hospital.find({
-    isActive: true,
-    isDeleted: false,
-  });
-  // Return the fetched users
-  return res.status(200).json({
-    success: true,
-    message: "Hospitals fetched successfully",
-    data: hospitals,
-  });
 });
 
 // @desc     fetch a hospital by Id from db
