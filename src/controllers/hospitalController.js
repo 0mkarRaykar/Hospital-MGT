@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 // import model(s)
 import { Hospital } from "../models/hospitalModel.js";
+import { User } from "../models/userModel.js";
 import { Bed } from "../models/bedModel.js";
 import { Facility } from "../models/facilityModel.js";
 
@@ -59,7 +60,7 @@ const createHospital = asyncHandler(async (req, res) => {
 
 const getAllHospital = asyncHandler(async (req, res) => {
   // fetch the role of the requesting user
-  const requestingUser = await Hospital.findById(req.user._id);
+  const requestingUser = await User.findById(req.user._id);
   if (!requestingUser) {
     return res.status(404).json({
       success: false,
